@@ -121,6 +121,14 @@ docker compose down -v
 - `unit_price`, `total_revenue` e `average_ticket` usam precisao decimal (2 casas).
 - A API evita ponto flutuante para dinheiro; em algumas respostas JSON os valores monetarios podem vir como string decimal.
 
+## Tratamento de erros HTTP
+
+- `404`: recurso nao encontrado (ex.: venda inexistente).
+- `422`: erro de validacao de payload/query (`error_code: validation_error`).
+- `400`: erro de regra de negocio baseado em `ValueError` (`error_code: invalid_request`).
+- `503`: falha temporaria de banco SQL ou Mongo (`error_code: sql_database_error` / `mongo_database_error`).
+- `500`: erro interno inesperado (`error_code: internal_server_error`).
+
 ## Exemplo de payload para criar venda
 
 ```json
