@@ -52,6 +52,24 @@ Copy-Item .env.example .env
 ```powershell
 docker run --name sales-mongo -p 27017:27017 -d mongo:7
 ```
+exemplo com instalacao nativa no windows
+Baixe o instalador: Vá ao site oficial do MongoDB e baixe o MSI do Community Server.
+Instale: Execute o instalador, escolha "Complete" e, na tela de serviço, marque "Install MongoDB as a Service" para que ele inicie automaticamente com o Windows.
+Instale o Compass (Opcional, mas recomendado): O instalador perguntará se deseja instalar o MongoDB Compass, uma interface gráfica para gerenciar seu banco.
+Verifique: Abra o terminal (cmd) e digite mongosh (ou mongo em versões antigas) para acessar o shell. 
+
+Método 3: macOS (Nativo)
+Utilizando Homebrew:
+Atualize e instale:
+bash
+brew tap mongodb/brew
+brew install mongodb-community
+Inicie o serviço:
+bash
+brew services start mongodb-community
+Verifique:
+bash
+mongosh
 
 5. Rode a API:
 ```powershell
