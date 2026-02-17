@@ -1,8 +1,8 @@
 # Sales API (FastAPI + SQLite + MongoDB)
 
 API backend em Python para ingestao, armazenamento e consulta de vendas.
-Esta aplicacao pode ser executada de duas formas:
-- Localmente (FastAPI + SQLite local + MongoDB local)
+A aplicacao suporta dois modos de execucao:
+- Local (FastAPI + SQLite local + MongoDB local)
 - Docker Compose (API + MongoDB em containers)
 
 ## Stack
@@ -11,12 +11,13 @@ Esta aplicacao pode ser executada de duas formas:
 - FastAPI
 - SQLite (dados estruturados de vendas)
 - MongoDB (dados textuais relacionados as vendas)
-- uv (gerenciamento de ambiente/dependencias)
-- Docker / Docker Compose (opcional, para execucao conteinerizada)
+- SQLAlchemy
+- uv (gerenciamento de dependencias)
+- Docker / Docker Compose (opcional)
 
-## Estrutura
+## Estrutura do projeto
 
-```
+```text
 app/
   api/routes/
   core/
@@ -26,136 +27,160 @@ app/
   services/
 ```
 
-## Como executar (local)
+## Requisitos funcionais atendidos
+
+- CRUD de vendas (`POST`, `GET`, `PUT`, `DELETE` em `/sales`)
+- Persistencia relacional em SQLite (tabela `sales`)
+- Persistencia textual em MongoDB (colecao `sale_texts`)
+- Consulta analitica (`/analytics/summary` e `/analytics/quantity-by-category`)
+- Busca textual (`/search/text?q=...`) com retorno das vendas relacionadas
+
+## Variaveis de ambiente
+
+A aplicacao le as configuracoes de `.env`:
+
+```env
+APP_NAME=Sales API
+SQLITE_URL=sqlite:///./data/sales.db
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=sales_db
+MONGO_COLLECTION_NAME=sale_texts
+```
+
+## Como executar localmente
 
 Pre-requisitos:
 - Python 3.11+
 - `uv` instalado
-- MongoDB rodando localmente (ou em container)
+- MongoDB disponivel localmente (ou via Docker)
 
-1. Instale o `uv` (caso ainda nao tenha):
+1. Instalar `uv` (caso nao tenha):
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-2. Instale as dependencias:
+2. Instalar dependencias:
 ```powershell
 uv sync
 ```
 
-3. Configure variaveis de ambiente:
+3. Criar arquivo de ambiente:
 ```powershell
 Copy-Item .env.example .env
 ```
 
-4. Suba um MongoDB local (exemplo com Docker):
+4. Garantir MongoDB ativo na porta `27017` (escolha uma opcao):
+
+Opcao A - MongoDB instalado localmente (sem Docker):
+```powershell
+# Windows (servico)
+Get-Service MongoDB
+Start-Service MongoDB
+```
+
+Opcao B - MongoDB via Docker:
 ```powershell
 docker run --name sales-mongo -p 27017:27017 -d mongo:7
 ```
-exemplo com instalacao nativa no windows
-Baixe o instalador: Vá ao site oficial do MongoDB e baixe o MSI do Community Server.
-Instale: Execute o instalador, escolha "Complete" e, na tela de serviço, marque "Install MongoDB as a Service" para que ele inicie automaticamente com o Windows.
-Instale o Compass (Opcional, mas recomendado): O instalador perguntará se deseja instalar o MongoDB Compass, uma interface gráfica para gerenciar seu banco.
-Verifique: Abra o terminal (cmd) e digite mongosh (ou mongo em versões antigas) para acessar o shell. 
 
-Método 3: macOS (Nativo)
-Utilizando Homebrew:
-Atualize e instale:
-bash
-brew tap mongodb/brew
-brew install mongodb-community
-Inicie o serviço:
-bash
-brew services start mongodb-community
-Verifique:
-bash
-mongosh
+Validacao rapida de conectividade:
+```powershell
+Test-NetConnection localhost -Port 27017
+```
 
-5. Rode a API:
+5. Iniciar API:
 ```powershell
 uv run uvicorn app.main:app --reload
 ```
 
-6. Documentacao interativa:
+6. Acessar documentacao:
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
-## Como executar (Docker)
+## Como executar com Docker Compose
 
-Pre-requisitos:
-- Docker Desktop (ou Docker Engine) ativo
+Pre-requisito:
+- Docker Desktop (ou Docker Engine) em execucao
 
-1. Suba API + MongoDB:
+1. Subir API + MongoDB:
 ```powershell
 docker compose up --build -d
 ```
 
-2. Verifique os logs da API:
+2. Ver logs da API:
 ```powershell
 docker compose logs -f api
 ```
 
-3. Acesse a documentacao:
+3. Acessar documentacao:
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
-4. Parar os containers:
+4. Parar containers:
 ```powershell
 docker compose down
 ```
 
-5. Parar e remover volumes (inclui dados do Mongo):
+5. Parar e remover volumes (inclui dados do MongoDB):
 ```powershell
 docker compose down -v
 ```
 
-## Teste rapido (qualquer modo)
-
-1. `GET /health`
-- `http://127.0.0.1:8000/health`
-- resposta esperada: `{"status":"ok"}`
-
-2. Criar uma venda (`POST /sales`) com o payload de exemplo abaixo
-
-3. Validar consultas:
-- `GET /sales`
-- `GET /analytics/summary`
-- `GET /search/text?q=elogiou`
-
 ## Endpoints principais
 
-- `POST /sales` cria venda (com `text_note` opcional para MongoDB)
-- `GET /sales` lista vendas com filtros `start_date`, `end_date`, `category`
-- `GET /sales/{sale_id}` consulta uma venda
-- `PUT /sales/{sale_id}` atualiza uma venda
+- `GET /health`
+- `POST /sales` cria venda (aceita `text_note` opcional para salvar no MongoDB)
+- `GET /sales` lista vendas com filtros opcionais: `start_date`, `end_date`, `category`
+- `GET /sales/{sale_id}` consulta uma venda por ID
+- `PUT /sales/{sale_id}` atualiza campos de uma venda
 - `DELETE /sales/{sale_id}` remove venda e textos relacionados
-- `POST /sales/{sale_id}/texts` adiciona texto relacionado a venda
-- `GET /analytics/summary` resumo analitico (`total_revenue`, `average_ticket`, `total_sales`)
-- `GET /analytics/quantity-by-category` quantidade vendida por categoria
-- `GET /search/text?q=...` busca textual no Mongo e retorna vendas relacionadas
+- `POST /sales/{sale_id}/texts` adiciona texto adicional para uma venda
+- `GET /analytics/summary` resumo analitico (`total_sales`, `total_revenue`, `average_ticket`)
+- `GET /analytics/quantity-by-category` soma `quantity` por categoria
+- `GET /search/text?q=...` busca textual (regex case-insensitive) e retorna venda + texto
 
-## Observacao sobre valores monetarios
+## Exemplos de uso
 
-- `unit_price`, `total_revenue` e `average_ticket` usam precisao decimal (2 casas).
-- A API evita ponto flutuante para dinheiro; em algumas respostas JSON os valores monetarios podem vir como string decimal.
+Criar venda:
 
-## Tratamento de erros HTTP
+```http
+POST /sales
+Content-Type: application/json
 
-- `404`: recurso nao encontrado (ex.: venda inexistente).
-- `422`: erro de validacao de payload/query (`error_code: validation_error`).
-- `400`: erro de regra de negocio baseado em `ValueError` (`error_code: invalid_request`).
-- `503`: falha temporaria de banco SQL ou Mongo (`error_code: sql_database_error` / `mongo_database_error`).
-- `500`: erro interno inesperado (`error_code: internal_server_error`).
-
-## Exemplo de payload para criar venda
-
-```json
 {
   "product_name": "Notebook X",
   "category": "Eletronicos",
   "quantity": 2,
-  "unit_price": 3500.0,
+  "unit_price": 3500.00,
   "sale_date": "2026-02-10",
   "text_note": "Cliente elogiou a entrega e a qualidade do produto"
 }
 ```
+
+Filtrar vendas por periodo e categoria:
+
+```http
+GET /sales?start_date=2026-02-01&end_date=2026-02-28&category=Eletronicos
+```
+
+Resumo analitico com filtro:
+
+```http
+GET /analytics/summary?start_date=2026-02-01&end_date=2026-02-28&category=Eletronicos
+```
+
+Busca textual:
+
+```http
+GET /search/text?q=elogiou
+```
+
+## Observacoes
+
+- Valores monetarios (`unit_price`, `total_revenue`, `average_ticket`) usam decimal com 2 casas.
+- Erros comuns:
+  - `400`: regra de negocio invalida (`error_code: invalid_request`)
+  - `404`: recurso nao encontrado
+  - `422`: erro de validacao (`error_code: validation_error`)
+  - `503`: indisponibilidade temporaria de banco (`sql_database_error` ou `mongo_database_error`)
+  - `500`: erro interno nao tratado
